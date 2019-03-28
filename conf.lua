@@ -1,4 +1,7 @@
 function love.conf(t)
+    t.identity = "TSGmapeditor"
+    t.version = "11.2"
+
     t.window.title = "TSG Map Editor"
     t.window.resizable = true
     t.window.width = "640"

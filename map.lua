@@ -1,4 +1,4 @@
-require "camera.lua"
+require "camera"
 
 Map = {
 }
@@ -6,6 +6,9 @@ Map = {
 function Map:new(fp)
   obj = {}
   local camera = Camera:new()
+
+  if fp ~= nil then
+  end
 
   setmetatable(obj, self)
   self.__index = self

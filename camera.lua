@@ -24,28 +24,20 @@ function Camera:new(x, y)
   return obj
 end
 
-function Camera.moveRight(dt, self)
-    self.dx = self.x + self.speed * dt
+function Camera:moveX(speedMult)
+    self.dx = self.speed * speedMult
 end
 
-function Camera.moveLeft(dt, self)
-    self.dx = self.x - self.speed * dt
+function Camera:moveY(speedMult)
+    self.dy = self.speed * speedMult
 end
 
-function Camera.moveDown(dt, self)
-    self.dy = self.y + self.speed * dt
-end
-
-function Camera.moveUp(dt, self)
-    self.dy = self.y - self.speed * dt
-end
-
-function Camera.stop(dt, self)
+function Camera:stop()
     self.dx = 0
     self.dy = 0
 end
 
-function Camera.resetZoom(dt, self)
+function Camera:resetZoom()
     self.zoom = 1
     self.scrollPos = 0
 end
@@ -56,12 +48,12 @@ function Camera:getZoomAtPos(scroll)
         scrollDir = -1
     end
 
-    return = 1 + math.floor(math.abs(scroll) * self.zoomSpeed) * scrollDir * self.zoomStep
+    return 1 + math.floor(math.abs(scroll) * self.zoomSpeed) * scrollDir * self.zoomStep
 end
 
-function Camera:move()
+function Camera:update(dt)
     self.x = self.x + self.dx
     self.y = self.y + self.dy
-    self.zoom = math.max(self.minZoom, math.min(self.maxZoom, self.getZoomAtPos(self.scrollPos)))
+    self.zoom = math.max(self.minZoom, math.min(self.maxZoom, self:getZoomAtPos(self.scrollPos)))
 end
 
