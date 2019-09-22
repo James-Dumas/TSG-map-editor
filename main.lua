@@ -1,4 +1,5 @@
 require "map"
+require "rect"
 VERSION = "1.0-alpha"
 
 COLORS = {
@@ -12,7 +13,11 @@ COLORS = {
 
 RECTS = {
     BG = {{0, 0, 1, 1}, COLORS.BG},
-    MENU = {{0, 0, 0.25, 1}, COLORS.MENU},
+    SIDEBAR = {{0, 0, 0.25, 1}, COLORS.FG},
+    OPEN_BTN = {{0.01, 0.01, 0.23, 0.06}, COLORS.MENU}
+}
+
+BUTTONS = {
 }
 
 states = {
@@ -20,6 +25,8 @@ states = {
     "mapOpen",
     "textInput"
 }
+
+clickActions = {}
 
 selected = nil -- the selected object(s)
 edgeSnap = true
@@ -31,12 +38,15 @@ function love.load()
 end
 
 function love.update(dt)
+    if openMap then
+        openMap.camera:update(dt)
+    end
 end
 
 function love.draw()
-    for k, v in ipairs(RECTS) do
-        love.graphics.setColor(v[2])
-        love.graphics.rectangle("fill", unpack(realRect(v[1])))
+    for k, v in pairs(RECTS) do
+        love.graphics.setColor(realColor(v[2]))
+        love.graphics.rectangle("fill", unpack(getPixRect(v[1])))
     end
 end
 
@@ -67,6 +77,16 @@ function love.mousepressed(x, y, button)
         if func ~= nil then
             func(x, y)
         end
+    elseif button == "l" then
+        for k, v in pairs(clickActions) do
+            if rectContains(v[1], x, y) then
+                if k == "mapSelect" then
+                    v[2](x, y)
+                else
+                v[2]()
+                end
+            end
+        end
     end
 end
 
@@ -91,10 +111,16 @@ function log(msg, show)
     -- TODO: display text on window
 end
 
-function realRect(rect)
-    local W = love.graphics.getWidth()
-    local H = love.graphics.getHeight()
-    return {math.ceil(rect[1] * W), math.ceil(rect[2] * H), math.ceil(rect[3] * W), math.ceil(rect[4] * H)}
+function addClickAction(name, rect, func)
+    clickActions[name] = {rect, func}
+end
+
+function removeClickAction(name)
+    clickActions[name] = nil
+end
+
+function realColor(rgb)
+    return {rgb[1] / 256, rgb[2] / 256, rgb[3] / 256}
 end
 
 function setState(newState)
@@ -118,6 +144,21 @@ function toggleSidebar(open)
     else
         sidebarOpen = open
     end
+
+    if sidebarOpen then
+        for i, btn in ipairs(menuButtons) do
+            addClickAction(unpack(btn))
+        end
+        removeClickAction("mapSelect")
+    else
+        for i, btn in ipairs(menuButtons) do
+            removeClickAction(btn[1])
+        end
+        addClickAction("mapSelect", mapShowRect, selectItem)
+    end
+end
+
+function selectItem(x, y)
 end
 
 -- bind each key/button to a 2-tuple containing functions unique to each state
@@ -126,6 +167,7 @@ end
 -- keyboard keys' functions take no arguments
 -- mouse buttons' functions take x, y
 -- set mouse.scroll to a function that takes distance
+-- if left mouse is not bound, it will use the clickAction system (position based function calling)
 allControls = {
     noMapOpen = {
         keyboard = {
@@ -134,7 +176,6 @@ allControls = {
         },
 
         mouse = {
-            l = {selectItem, nil},
             r = {openMenu, nil},
         },
     },
@@ -155,7 +196,6 @@ allControls = {
         },
 
         mouse = {
-            l = {selectItem, nil},
             r = {openMenu, nil},
             scroll = scrollHandler,
         },
@@ -165,6 +205,8 @@ allControls = {
         keyboard = {
             left = {textCursorLeft, nil},
             right = {textCursorRight, nil},
+            home = {textCursorHome, nil},
+            ["end"] = {textCursorEnd, nil},
         },
 
         mouse = {
@@ -175,16 +217,12 @@ allControls = {
     },
 }
 
-clickActions = {
-
-}
-
 log("Initializing...")
 
 setState("noMapOpen")
 
 saveDirFile = "savedir"
-fallbackSaveDir = "Documents/TSG Maps"
+fallbackSaveDir = "Documents/TSGmaps"
 
 fileDelim = package.config:sub(1, 1)
 if fileDelim == "/" then
@@ -196,9 +234,10 @@ end
 if love.filesystem.getInfo(saveDirFile) ~= nil then
     local contents = love.filesystem.read(saveDirFile)
     local lineEnd = contents:find("\n") or contents:len()
-    saveDir = homeDir .. fileDelim .. contents:sub(1, lineEnd) .. fileDelim
+    saveDir = homeDir .. fileDelim .. contents:sub(1, lineEnd-1) .. fileDelim
 else
     log("Couldn't find file '" .. saveDirFile .. "'. Using default save directory.", true)
     saveDir = homeDir .. fileDelim .. fallbackSaveDir .. fileDelim
 end
 
+log(saveDir)
